@@ -38,6 +38,15 @@ end
 ### warmup state
 ###
 
+"""
+$(TYPEDEF)
+
+Representation of a warmup state. Not part of the API.
+
+# Fields
+
+$(FIELDS)
+"""
 struct WarmupState{TQ <: EvaluatedLogDensity,Tκ <: KineticEnergy, Tϵ <: Union{Real,Nothing}}
     Q::TQ
     κ::Tκ
@@ -46,8 +55,8 @@ end
 
 function Base.show(io::IO, warmup_state::WarmupState)
     @unpack κ, ϵ = warmup_state
-    print(io, "adapted sampling parameters: stepsize (ϵ) ≈ $(round(ϵ; sigdigits = 3))\n",
-          "  $(κ)")
+    ϵ_display = ϵ ≡ nothing ? "unspecified" : "≈ $(round(ϵ; sigdigits = REPORT_SIGDIGITS))"
+    print(io, "adapted sampling parameters: stepsize (ϵ) $(ϵ_display), $(κ)")
 end
 
 ###
@@ -166,7 +175,7 @@ struct TuningNUTS{M,D}
     stepsize_adaptation::D
     """
     Regularization factor for normalizing variance. An estimated covariance matrix `Σ` is
-    rescaled by `λ`` towards `σ²I`, where `σ²` is the median of the diagonal. The
+    rescaled by `λ` towards ``σ²I``, where ``σ²`` is the median of the diagonal. The
     constructor has a reasonable default.
     """
     λ::Float64
@@ -295,7 +304,7 @@ A sequence of warmup stages:
 `M` (`Diagonal`, the default or `Symmetric`) determines the type of the metric adapted from
 the sample.
 
-(This is the suggested tuner of most papers on NUTS).
+This is the suggested tuner of most applications.
 """
 function default_warmup_stages(;
                                M::Type{<:Union{Diagonal,Symmetric}} = Diagonal,
@@ -319,7 +328,8 @@ A sequence of warmup stages for fixed stepsize:
 2. tuning covariance: first with `middle_steps` steps, then repeat with twice
    the steps `doubling_stages` times
 
-Very similar to [`default_warmup_stages`](@ref), but omits the warmup stages with just stepsize tuning.
+Very similar to [`default_warmup_stages`](@ref), but omits the warmup stages with just
+stepsize tuning.
 """
 function fixed_stepsize_warmup_stages(;
                                       M::Type{<:Union{Diagonal,Symmetric}} = Diagonal,

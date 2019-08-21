@@ -42,7 +42,7 @@ isinteractive() && include("common.jl")
 end
 
 @testset "log acceptance ratios" begin
-    ℓ = DistributionLogDensity(MvNormal(ones(5), Diagonal(ones(5))))
+    ℓ = multivariate_normal(ones(5))
     log2ϵs = -5:5
     N = 13
     logA = explore_log_acceptance_ratios(ℓ, zeros(5), log2ϵs; N = N)
@@ -53,7 +53,7 @@ end
 @testset "leapfrog trajectory" begin
     # problem setup
     K = 2
-    ℓ = DistributionLogDensity(MvNormal(ones(K), Diagonal(ones(K))))
+    ℓ = multivariate_normal(ones(K))
     κ = GaussianKineticEnergy(K)
     q = zeros(K)
     Q = evaluate_ℓ(ℓ, q)
@@ -71,9 +71,8 @@ end
     Δs1 = πs1 .- πs1[ix0]
 
     # calculate using function
-    @unpack Δs, zs = leapfrog_trajectory(ℓ, zs1[ix0].Q.q, ϵ, ixs .- ix0; κ = κ,
-                                         p = zs1[ix0].p)
-    @test all(isapprox.(Δs, Δs1; atol = 1e-5))
-    @test all(map((x, y) -> x.Q.q ≈ y.Q.q, zs, zs1))
-    @test all(map((x, y) -> x.p ≈ y.p, zs, zs1))
+    traj = leapfrog_trajectory(ℓ, zs1[ix0].Q.q, ϵ, ixs .- ix0; κ = κ, p = zs1[ix0].p)
+    @test all(isapprox.(map(t -> t.Δ, traj), Δs1; atol = 1e-5))
+    @test all(map((t, y) -> t.z.Q.q ≈ y.Q.q, traj, zs1))
+    @test all(map((t, y) -> t.z.p ≈ y.p, traj, zs1))
 end

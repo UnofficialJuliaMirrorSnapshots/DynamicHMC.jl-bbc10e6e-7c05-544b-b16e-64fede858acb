@@ -22,6 +22,8 @@ The second argument can be
 [`make_mcmc_reporter`](@ref)).
 
 `meta` arguments are key-value pairs.
+
+In this context, a *step* is a NUTS transition, not a leapfrog step.
 """
 report(reporter::NoProgressReport, step::Union{AbstractString,Integer}; meta...) = nothing
 
@@ -38,6 +40,8 @@ make_mcmc_reporter(reporter::NoProgressReport, total_steps; meta...) = reporter
 $(TYPEDEF)
 
 Report progress into the `Logging` framework, using `@info`.
+
+For the information reported, a *step* is a NUTS transition, not a leapfrog step.
 
 # Fields
 

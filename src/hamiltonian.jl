@@ -33,10 +33,13 @@ abstract type EuclideanKineticEnergy <: KineticEnergy end
 """
 $(TYPEDEF)
 
-Gaussian kinetic energy, with ``K(q,p) = p ∣ q ∼ 1/2 pᵀ⋅M⁻¹⋅p + log|M| + const``,
-which is independently of ``q``.
+Gaussian kinetic energy, with ``K(q,p) = p ∣ q ∼ 1/2 pᵀ⋅M⁻¹⋅p + log|M|`` (without constant),
+which is independent of ``q``.
 
 The inverse covariance ``M⁻¹`` is stored.
+
+!!! note
+    Making ``M⁻¹`` approximate the posterior variance is a reasonable starting point.
 """
 struct GaussianKineticEnergy{T <: AbstractMatrix,
                              S <: AbstractMatrix} <: EuclideanKineticEnergy
@@ -164,7 +167,14 @@ $(SIGNATURES)
 Evaluate log density and gradient and save with the position. Preferred interface for
 creating `EvaluatedLogDensity` instances.
 """
-evaluate_ℓ(ℓ, q) = EvaluatedLogDensity(q, logdensity_and_gradient(ℓ, q)...)
+function evaluate_ℓ(ℓ, q)
+    ℓq, ∇ℓq = logdensity_and_gradient(ℓ, q)
+    if isfinite(ℓq)
+        EvaluatedLogDensity(q, ℓq, ∇ℓq)
+    else
+        EvaluatedLogDensity(q, oftype(ℓq, -Inf), q) # second q used just as a placeholder
+    end
+end
 
 """
 $(TYPEDEF)
@@ -219,10 +229,13 @@ Return the new phase point.
 The leapfrog algorithm uses the gradient of the next position to evolve the momentum. If
 this is not finite, the momentum won't be either, `logdensity` above will catch this and
 return an `-Inf`, making the point divergent.
+
+
 """
 function leapfrog(H::Hamiltonian{<: EuclideanKineticEnergy}, z::PhasePoint, ϵ)
     @unpack ℓ, κ = H
     @unpack p, Q = z
+    @argcheck isfinite(Q.ℓq) "Internal error: leapfrog called from non-finite log density"
     pₘ = p + ϵ/2 * Q.∇ℓq
     q′ = Q.q + ϵ * ∇kinetic_energy(κ, pₘ)
     Q′ = evaluate_ℓ(H.ℓ, q′)
