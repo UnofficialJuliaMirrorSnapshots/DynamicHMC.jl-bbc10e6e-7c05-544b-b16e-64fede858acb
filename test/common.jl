@@ -6,10 +6,10 @@
 #### packages and symbols
 ####
 
-using DynamicHMC, Test, ArgCheck, DocStringExtensions, LinearAlgebra,
-    MCMCDiagnostics, Parameters, Random, StatsBase, StatsFuns, Statistics
+using DynamicHMC, Test, ArgCheck, DocStringExtensions, LinearAlgebra, MCMCDiagnostics,
+    Parameters, Random, StatsBase, StatsFuns, Statistics
 
-import ForwardDiff, Random
+import ForwardDiff, Random, TransformVariables
 
 using DynamicHMC:
     # trees
@@ -21,11 +21,11 @@ using DynamicHMC:
     logdensity,
     # NUTS
     TrajectoryNUTS, rand_bool, GeneralizedTurnStatistic, AcceptanceStatistic,
-    leaf_acceptance_statistic, acceptance_rate, TreeStatisticsNUTS, TreeOptionsNUTS,
-    NUTS_sample_tree,
+    leaf_acceptance_statistic, acceptance_rate, TreeStatisticsNUTS, NUTS, sample_tree,
     # stepsize
     find_crossing_stepsize, bisect_stepsize, find_initial_stepsize, InitialStepsizeSearch,
-    DualAveraging, initial_adaptation_state, adapt_stepsize, current_ϵ, final_ϵ, FixedStepsize,
+    DualAveraging, initial_adaptation_state, adapt_stepsize, current_ϵ, final_ϵ,
+    FixedStepsize,
     # mcmc
     position_matrix, WarmupState
 
@@ -108,11 +108,17 @@ end
 ### Multivariate normal ℓ for testing
 ###
 
+"Random (positive) diagonal matrix."
+rand_D(K) = Diagonal(abs.(randn(K)))
+
+"Random Cholesky factor for correlation matrix."
+function rand_C(K)
+    t = TransformVariables.CorrCholeskyFactor(K)
+    t(randn(TransformVariables.dimension(t)))
+end
+
 "Multivariate normal with `Σ = LL'`."
 multivariate_normal(μ, L) = shift(μ, linear(L, StandardMultivariateNormal(length(μ))))
-
-"Multivariate normal with Σ = Q*D*D*Q′."
-multivariate_normal(μ, D, Q) = multivariate_normal(μ, Q * D)
 
 "Multivariate normal with diagonal `Σ` (constant `v` variance)."
 multivariate_normal(μ, v::Real = 1) = multivariate_normal(μ, Diagonal(fill(v, length(μ))))

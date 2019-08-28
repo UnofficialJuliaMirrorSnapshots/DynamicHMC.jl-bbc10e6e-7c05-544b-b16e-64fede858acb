@@ -6,20 +6,17 @@ isinteractive() && include("common.jl")
 ##### Sample from well-characterized distributions using LogDensityTestSuite, check
 ##### convergence and mixing, and compare.
 
-"Random unitary matrix."
-rand_Q(K) = qr(randn(K, K)).Q
-
-"Random (positive) diagonal matrix."
-rand_D(K) = Diagonal(abs.(randn(K)))
-
 """
 $(SIGNATURES)
 
 Run `K` chains of MCMC on `ℓ`, each for `N` samples, return a vector of position matrices
 and EBFMI statistics as fields of a `NamedTuple`.
+
+Keyword arguments are passed to `mcmc_with_warmup`.
 """
-function run_chains(rng, ℓ, N, K)
-    results = [mcmc_with_warmup(rng, ℓ, N; reporter = NoProgressReport()) for i in 1:K]
+function run_chains(rng, ℓ, N, K; mcmc_args...)
+    results = [mcmc_with_warmup(rng, ℓ, N; reporter = NoProgressReport(), mcmc_args...)
+               for i in 1:K]
     (position_matrices = map(r -> position_matrix(r.chain), results),
      EBFMIs = map(r -> EBFMI(r.tree_statistics), results))
 end
@@ -48,12 +45,14 @@ and compared to thresholds that either *alert* or *fail*. The latter should be l
 of false positives, the tests are rather hair-trigger.
 
 Output is sent to `io`. Specifically, `title` is printed for the first alert.
+
+`mcmc_args` are passed down to `mcmc_with_warmup`.
 """
 function NUTS_tests(rng, ℓ, title, N; K = 3, B = 10, io = stdout,
-                    R̂_alert = 1.05, R̂_fail = 1.1,
-                    τ_alert = 0.2, τ_fail = 0.1,
+                    R̂_alert = 1.05, R̂_fail = 2 * (R̂_alert - 1) + 1,
+                    τ_alert = 0.2, τ_fail = τ_alert * 0.5,
                     p_alert = 0.001, p_fail = p_alert * 0.1,
-                    EBFMI_alert = 0.5, EBFMI_fail = 0.2)
+                    EBFMI_alert = 0.5, EBFMI_fail = 0.2, mcmc_args = NamedTuple())
     @argcheck 1 < R̂_alert ≤ R̂_fail
     @argcheck 0 < τ_fail ≤ τ_alert
     @argcheck 0 < p_fail ≤ p_alert
@@ -68,7 +67,7 @@ function NUTS_tests(rng, ℓ, title, N; K = 3, B = 10, io = stdout,
             title_printed = true
         end
     end
-    @unpack position_matrices, EBFMIs = run_chains(RNG, ℓ, N, K)
+    @unpack position_matrices, EBFMIs = run_chains(RNG, ℓ, N, K; mcmc_args...)
 
     # mixing and autocorrelation diagnostics
     @unpack R̂, τ = mcmc_statistics(position_matrices)
@@ -117,14 +116,14 @@ end
         K = rand(3:10)
         μ = randn(K)
         D = rand_D(K)
-        Q = rand_Q(K)
-        ℓ = multivariate_normal(μ, D, Q)
-        title = "multivariate normal μ = $(μ) D = $(D) Q = $(Q)"
-        NUTS_tests(RNG, ℓ, title, 1000; p_alert = 1e-4)
+        C = rand_C(K)
+        ℓ = multivariate_normal(μ, D * C)
+        title = "multivariate normal μ = $(μ) D = $(D) C = $(C)"
+        NUTS_tests(RNG, ℓ, title, 1000; p_alert = 1e-5)
     end
 end
 
-@testset "NUTS tests with specific distributions" begin
+@testset "NUTS tests with specific normal distributions" begin
     ℓ = multivariate_normal([0.0], fill(5e8, 1, 1))
     NUTS_tests(RNG, ℓ, "univariate huge variance", 1000)
 
@@ -163,4 +162,15 @@ end
                    5.57947 -0.0540131 1.78163 1.73862 -2.99741 3.6118 10.215 9.60671;
                    7.28634 1.79718 -0.0821483 2.55874 -1.95031 5.22626 9.60671 11.5554]).L)
     NUTS_tests(RNG, ℓ, "kept 8 dim", 1000)
+end
+
+@testset "NUTS tests with mixtures" begin
+    ℓ1 = multivariate_normal(zeros(3), 1.0)
+    D2 = Diagonal(fill(0.4, 3))
+    C2 = [1.0 -0.48058358598852935 0.39971148270854306;
+          0.0 0.876948924897229 -0.5361348433365906;
+          0.0 0.0 0.7434985947205197]
+    ℓ2 = multivariate_normal(ones(3), D2 * C2)
+    ℓ = mix(0.2, ℓ1, ℓ2)
+    NUTS_tests(RNG, ℓ, "mixture of two normals", 1000)
 end
