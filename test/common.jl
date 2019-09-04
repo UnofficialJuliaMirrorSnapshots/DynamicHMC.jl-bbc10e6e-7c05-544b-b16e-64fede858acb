@@ -6,8 +6,8 @@
 #### packages and symbols
 ####
 
-using DynamicHMC, Test, ArgCheck, DocStringExtensions, LinearAlgebra, MCMCDiagnostics,
-    Parameters, Random, StatsBase, StatsFuns, Statistics
+using DynamicHMC, Test, ArgCheck, DocStringExtensions, HypothesisTests, LinearAlgebra,
+    MCMCDiagnostics, Parameters, Random, StatsBase, StatsFuns, Statistics
 
 import ForwardDiff, Random, TransformVariables
 
@@ -39,13 +39,12 @@ using DynamicHMC.Diagnostics: ACCEPTANCE_QUANTILES
 
 using LogDensityProblems: logdensity_and_gradient, dimension, LogDensityProblems
 
-### LogDensityTestSuite is under active development, use the latest
-### FIXME remove code below when that package stabilizies
-if !isinteractive()             # on CI
-    @info "installing LogDensityTestSuite#master"
-    import Pkg
-    Pkg.API.add(Pkg.PackageSpec(; name = "LogDensityTestSuite", rev = "master"))
-end
+### uncomment code below to use latest LogDensityTestSuite
+# if !isinteractive()             # on CI
+#     @info "installing LogDensityTestSuite#master"
+#     import Pkg
+#     Pkg.API.add(Pkg.PackageSpec(; name = "LogDensityTestSuite", rev = "master"))
+# end
 using LogDensityTestSuite
 
 ####
