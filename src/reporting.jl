@@ -47,29 +47,54 @@ For the information reported, a *step* is a NUTS transition, not a leapfrog step
 
 $(FIELDS)
 """
-struct LogProgressReport{T}
+Base.@kwdef struct LogProgressReport{T}
     "ID of chain. Can be an arbitrary object, eg `nothing`."
-    chain_id::T
+    chain_id::T = nothing
     "Always report progress past `step_interval` of the last report."
-    step_interval::Int
-    "Always report progress past this much time (in second) after the last report."
-    time_interval_s::Float64
+    step_interval::Int = 100
+    "Always report progress past this much time (in seconds) after the last report."
+    time_interval_s::Float64 = 1000.0
 end
 
+"""
+$(SIGNATURES)
+
+Assemble log message metadata.
+
+Currently, it adds `chain_id` *iff* it is not `nothing`.
+"""
+_log_meta(chain_id::Nothing, meta) = meta
+
+_log_meta(chain_id, meta) = (chain_id = chain_id, meta...)
+
 function report(reporter::LogProgressReport, message::AbstractString; meta...)
-    @info message chain_id = reporter.chain_id meta...
+    @info message _log_meta(reporter.chain_id, meta)...
     nothing
 end
 
+"""
+$(TYPEDEF)
+
+A composite type for tracking the state for which the last log message was emitted, for MCMC
+reporting with a given total number of steps (see [`make_mcmc_reporter`](@ref).
+
+# Fields
+
+$(FIELDS)
+"""
 mutable struct LogMCMCReport{T}
+    "The progress report sink."
     log_progress_report::T
+    "Total steps for this stage."
     total_steps::Int
+    "Index of the last reported step."
     last_reported_step::Int
+    "The last time a report was logged (determined using `time_ns`)."
     last_reported_time_ns::UInt64
 end
 
 function report(reporter::LogMCMCReport, message::AbstractString; meta...)
-    @info message chain_id = reporter.log_progress_report.chain_id meta...
+    @info message _log_meta(reporter.log_progress_report.chain_id, meta)...
     nothing
 end
 
@@ -88,11 +113,11 @@ function report(reporter::LogMCMCReport, step::Integer; meta...)
     Δ_time_s = (t_ns - last_reported_time_ns) / 1_000_000_000
     if last_reported_step < 0 || Δ_steps ≥ step_interval || Δ_time_s ≥ time_interval_s
         seconds_per_step = Δ_time_s / Δ_steps
-        @info("MCMC progress", chain_id = chain_id, step = step,
-              seconds_per_step = round(seconds_per_step; sigdigits = 2),
-              estimated_seconds_left = round((total_steps - step) * seconds_per_step;
-                                             sigdigits = 2),
-              meta...)
+        meta_progress = (step = step,
+                         seconds_per_step = round(seconds_per_step; sigdigits = 2),
+                         estimated_seconds_left = round((total_steps - step) *
+                                                        seconds_per_step; sigdigits = 2))
+        @info "MCMC progress" merge(_log_meta(chain_id, meta_progress), meta)...
         reporter.last_reported_step = step
         reporter.last_reported_time_ns = t_ns
     end
@@ -102,11 +127,12 @@ end
 """
 $(SIGNATURES)
 
-Return a default reporter with the given chain ID, taking the environment into account.
+Return a default reporter, taking the environment into account. Keyword arguments are passed
+to constructors when applicable.
 """
-function default_reporter(; chain_id = nothing)
+function default_reporter(; kwargs...)
     if isinteractive()
-        LogProgressReport(chain_id, 100, 1000.0)
+        LogProgressReport(; kwargs...)
     else
         NoProgressReport()
     end

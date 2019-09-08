@@ -1,6 +1,6 @@
 # Introduction
 
-DynamicHMC.jl implements a variant of the “No-U-Turn Sampler” of Hoffmann and [Gelman (2014)](https://arxiv.org/abs/1111.4246), as described in [Betancourt (2017)](https://arxiv.org/abs/1701.02434).[^1] This package is mainly useful for Bayesian inference.
+[DynamicHMC.jl](https://github.com/tpapp/DynamicHMC.jl/) implements a variant of the “No-U-Turn Sampler” of Hoffmann and [Gelman (2014)](https://arxiv.org/abs/1111.4246), as described in [Betancourt (2017)](https://arxiv.org/abs/1701.02434).[^1] This package is mainly useful for Bayesian inference.
 
 [^1]: In order to make the best use of this package, you should read at least the latter paper thoroughly.
 
@@ -40,7 +40,7 @@ This package has the following intended use cases:
 
 ## Support
 
-If you have questions, feature requests, or bug reports, please [open an issue](https://github.com/tpapp/DynamicHMC.jl/issues/new). I would like to emphasize that it is perfectly fine to open issues just to ask questions. You can also address questions to [@Tamas_Papp](https://discourse.julialang.org/u/Tamas_Papp) on the Julia discourse forum.
+If you have questions, feature requests, or bug reports, please [open an issue](https://github.com/tpapp/DynamicHMC.jl/issues/new). I would like to emphasize that it is perfectly fine to open issues just to ask questions. You can also address questions to [`@Tamas_Papp`](https://discourse.julialang.org/u/Tamas_Papp) on the Julia discourse forum.
 
 ## Versioning and interface changes
 
