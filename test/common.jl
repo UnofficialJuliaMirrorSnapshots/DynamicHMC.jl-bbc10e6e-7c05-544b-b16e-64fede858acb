@@ -7,7 +7,7 @@
 ####
 
 using DynamicHMC, Test, ArgCheck, DocStringExtensions, HypothesisTests, LinearAlgebra,
-    MCMCDiagnostics, Parameters, Random, StatsBase, StatsFuns, Statistics
+    MCMCDiagnostics, Parameters, Random, StatsBase, Statistics
 
 import ForwardDiff, Random, TransformVariables
 
@@ -20,14 +20,16 @@ using DynamicHMC:
     EvaluatedLogDensity, evaluate_ℓ, PhasePoint, logdensity, leapfrog, calculate_p♯,
     logdensity,
     # NUTS
-    TrajectoryNUTS, rand_bool, GeneralizedTurnStatistic, AcceptanceStatistic,
+    TrajectoryNUTS, rand_bool_logprob, GeneralizedTurnStatistic, AcceptanceStatistic,
     leaf_acceptance_statistic, acceptance_rate, TreeStatisticsNUTS, NUTS, sample_tree,
     # stepsize
     find_crossing_stepsize, bisect_stepsize, find_initial_stepsize, InitialStepsizeSearch,
     DualAveraging, initial_adaptation_state, adapt_stepsize, current_ϵ, final_ϵ,
     FixedStepsize,
     # mcmc
-    position_matrix, WarmupState
+    mcmc_steps, mcmc_next_step, mcmc_keep_warmup, position_matrix, WarmupState
+
+using DynamicHMC: logaddexp # FIXME remove when depending on LogExpFunctions
 
 import DynamicHMC:
     # trees
